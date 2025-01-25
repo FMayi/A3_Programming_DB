@@ -72,8 +72,9 @@ public:
             records.push_back(r);
             cur_size += r.get_size(); 
             // update slot directory information
-            int offset = free_space -r.get_size();
-            free_space =offset; // to move the pointer of free_space
+
+           int offset = cur_size -r.get_size();
+          //  free_space =offset; // to move the pointer of free_space
             slot_directory.push_back(make_pair(offset, r.serialize().size()));
 
             return true;
@@ -89,6 +90,14 @@ public:
         
         char page_data[4096] = {0}; // Let's write all the information of the page into this char array. So that we can write the page into the data file in one go.
         int offset = 0;
+
+        /*FMA*/
+
+        int dir_offset = 4095; // Adding directory at the bottom
+        int num_slots =0;       // The number of slots that we are using for the current page
+        int free_space_pos = 0; // Indicate where the free space in the page starts
+        //FMA
+
 
         // If you look at figure 9.7, you'll find that there are spaces allocated for the slot-directory. 
         // You can structure your page in your own way, such as allocate first x bytes of memory to store the slot-directory information
@@ -106,8 +115,30 @@ public:
         //the above loop just read the id, name, bio etc. You'll also need to store the slot-directory information. So that you can use the slot-directory
         // to retrieve a record.
         for (const auto& slots : slot_directory) {
+        /*FMA*/
             // insert the slot directory information into the page_data
+            int record_offset = slots.first;
+            int record_size = slots.second;
+
+            //Intro duces record offset
+            dir_offset -= sizeof(int); //MO ves the pointer of the directory
+            memcpy(page_data + dir_offset, &record_offset, sizeof(int));
+
+            //Introduces recod length
+            dir_offset -= sizeof(int);
+            memcpy(page_data + dir_offset, &record_size, sizeof(int));
+
         }
+        //Introduces free space pointer
+        free_space_pos = cur_size;
+        dir_offset -= sizeof(int);
+        memcpy(page_data + dir_offset, &free_space, sizeof(int));
+
+        //Intro number of slots
+        num_slots += slot_directory.size();
+        dir_offset -= sizeof(int);
+        memcpy(page_data + dir_offset, &num_slots, sizeof(int));
+        /*FMA*/
 
         // Write the page_data to the EmployeeRelation.dat file 
         out.write(page_data, sizeof(page_data)); // Always write exactly 4KB
@@ -189,8 +220,8 @@ public:
             // Now we will insert that record information to page, i.e., buffer[page_number].
 
             /* FMA*/
-            if (buffer[page_number].cur_size <4096) {   // If the page has < 4KB data
-                buffer[page_number].insert_record_into_page(r); // We Insert the record into current page in the buffer
+        //if (buffer[page_number].cur_size <4096) {   // If the page has < 4KB data
+        //              buffer[page_number].insert_record_into_page(r); // We Insert the record into current page in the buffer
             }
             // else:
                 // go to the next page [page_number++]
