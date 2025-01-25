@@ -213,21 +213,6 @@ public:
             }
             //create A record object            
             Record r = Record(fields);
-            // r.print();
-            /***TO_DO***/ 
-
-
-            // Now we will insert that record information to page, i.e., buffer[page_number].
-
-            /* FMA*/
-        //if (buffer[page_number].cur_size <4096) {   // If the page has < 4KB data
-        //              buffer[page_number].insert_record_into_page(r); // We Insert the record into current page in the buffer
-            }
-            // else:
-                // go to the next page [page_number++]
-                // Remember You only have 3 pages.
-            /*FMA*/
-
 
             if (!buffer[page_number].insert_record_into_page(r)) {
 
@@ -242,17 +227,10 @@ public:
                     }
                     // Reset/Free the pages and start filling them up with the future records
                     page_number = 0;
-                    //FMA
-                    //free_space =4096;
-                    //cur_size = 0;
-
-                    //FMA
-                     //page.clear();
                 }
                 // Insert the record into the new current page
                 buffer[page_number].insert_record_into_page(r);
             }
-           
             
         }
         csvFile.close();  // Close the CSV file
