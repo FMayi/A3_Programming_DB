@@ -27,14 +27,18 @@ int main(int argc, char* const argv[]) {
 
     // Searching for Employee IDs Using [manager.findAndPrintEmployee(id)]
     /***TO_DO***/
-    int searchId;
-
-    while (true) {
-        cout << "Enter Employee ID to search (Input 0 to exit): ";
-        cin >> searchId;
-        if (!searchId) break;
+    for (int i = 1; i < argc; ++i) {
+        int searchId = stoi(argv[i]);
+        cout << "Employee " << i << ": ";
         manager.findAndPrintEmployee(searchId);
     }
+    // int searchId;
+    // while (true) {
+    //     cout << "Enter Employee ID to search (Input 0 to exit): ";
+    //     cin >> searchId;
+    //     if (!searchId) break;
+    //     manager.findAndPrintEmployee(searchId);
+    // }
 
     return 0;
 }
