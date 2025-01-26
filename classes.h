@@ -93,28 +93,20 @@ public:
     int free_space = 4096; //FMA. hold where the free space is, plan to use it to determine the offset
     // Write a Record into your page
     bool insert_record_into_page(Record r){
-        
+        int record_size = r.serialize().size();
         // Take a look at Figure 9.9 and read the Section 9.7.2 [Record Organization for Variable Length Records]
         // You may adopt any of the approaches mentioned their. E.g., id $ name $ bio $ manager_id $ separating records with a delimiter / the alternative approaches
-        if(cur_size + r.get_size() >= 4096){     // Check the current size of your page. Your page has 4KB memory for storing the records and the slot directory information.   
-
+        if(cur_size + record_size >= 4096){     // Check the current size of your page. Your page has 4KB memory for storing the records and the slot directory information.
             //You cannot insert the current record into this page
             return false;
         }
-        else{
+        else {
             records.push_back(r);
             // update slot directory information
-
-           // int offset = cur_size - r.serialize().size();
-          //  free_space =offset; // to move the pointer of free_space
-            slot_directory.push_back(make_pair(cur_size, r.serialize().size()));
-            cur_size += r.serialize().size();
-
-
+            slot_directory.push_back(make_pair(cur_size, record_size));
+            cur_size += record_size;
             return true;
         }
-        
-
     }
 
     // void write_into_data_file(ostream& out) const {
@@ -249,7 +241,6 @@ public:
                 Record r;
                 r.deserialize(record_string);
                 records.push_back(r);
-                r.print();
             }
 
             return true;
@@ -260,6 +251,17 @@ public:
         }
 
         return false;
+    }
+
+    void clear() {
+        records.clear();
+        slot_directory.clear();
+        cur_size = 0;
+        free_space = 4096;
+    }
+
+    bool is_empty() const {
+        return slot_directory.empty(); // A page is empty if it has no records
     }
 };
 
@@ -292,8 +294,7 @@ public:
 
         ifstream csvFile(csvFilename);  // Open the Employee.csv file for reading
         
-        string line, name, bio;
-        int id, manager_id;
+        string line;
         int page_number = 0; // Current page we are working on [at most 3 pages]
 
         // Read each line from the CSV file, parse it, and create Employee objects
@@ -318,12 +319,20 @@ public:
                 if (page_number >= buffer.size()) {
                     for (page& p : buffer) {
                         p.write_into_data_file(data_file);
+                        // Reset/Free the pages and start filling them up with the future records
+                        p.clear();
                     }
-                    // Reset/Free the pages and start filling them up with the future records
                     page_number = 0;
                 }
                 // Insert the record into the new current page
                 buffer[page_number].insert_record_into_page(r);
+            }
+            // Write any remaining pages in the buffer to the file after the loop
+            for (int i = 0; i < buffer.size(); ++i) {
+                if (!buffer[i].is_empty()) { // Check if the page is not empty
+                    buffer[i].write_into_data_file(data_file);
+                    buffer[i].clear(); // Reset the page
+                }
             }
             
         }
@@ -332,54 +341,39 @@ public:
 
     // Searches for an Employee by ID in the binary data_file using the page and prints if found
     void findAndPrintEmployee(int searchId) {
-        
-        // data_file.seekg(0, ios::beg);  // Rewind the data_file to the beginning for reading
-        //
-        // /*** TO_DO ***/
-        // // Use [ read_from_data_file(data_file)] to read a page from your datafile to the page buffer[3];
-        // // You can read into these 3 pages at once or use the following loop to read pages one by one.
-        // int page_number = 0;
-        // while(buffer[page_number].read_from_data_file(data_file)){
-        //
-        //     // Now that you have a page loaded with the data you stored previously, use the slot directory to find the desired id.
-        //     // If you have not found the id in these 1/3 pages, repeat the process: reset the pages[3] and load next 3 pages from the EmployeeRelation.dat file
-        //     page_number++;
-        //     if (page_number >= buffer.size()) {
-        //         // Reset/Free the pages and start filling them up with the future records
-        //         page_number = 0;
-        //     }
-        //
-        // }
-
         data_file.seekg(0, ios::beg);  // Rewind the data_file to the beginning for reading
-
         int page_number = 0;
         int page_offset = 0;  // Keeps track of the number of pages read so far
         const int page_size = 4096; // Size of one page (4KB)
-
+        bool found = false;
         while (buffer[page_number].read_from_data_file(data_file)) {
             // Now process the current page using the slot directory to find the desired id
             // Process logic goes here
-
+            for (Record record : buffer[page_number].records) {
+                if (record.id == searchId) {
+                    record.print();
+                    found = true;
+                    break;
+                }
+            }
+            if (found) break;
             page_number++;
             page_offset++;
-
             // If buffer is full, reset `page_number` to 0 for circular usage
             if (page_number >= buffer.size()) {
                 page_number = 0;
-
                 // Ensure the file stream has advanced correctly
                 // Skip over the already-read pages (3 pages, 4KB each in this case)
                 data_file.seekg(page_offset * page_size, ios::beg);
-
                 // If the seek goes beyond EOF, it will stop further reading
                 if (data_file.eof()) {
                     break;
                 }
             }
         }
-
-
         // Print not found message if no match from any of the records
+        if (!found) {
+            cout << "Employee with ID " << searchId << " not found." << endl;
+        }
     }
 };

@@ -26,7 +26,15 @@ int main(int argc, char* const argv[]) {
     manager.createFromFile("Employee.csv");
 
     // Searching for Employee IDs Using [manager.findAndPrintEmployee(id)]
-    /***TO_DO***/ 
-    manager.findAndPrintEmployee(123131);
+    /***TO_DO***/
+    int searchId;
+
+    while (true) {
+        cout << "Enter Employee ID to search (Input 0 to exit): ";
+        cin >> searchId;
+        if (!searchId) break;
+        manager.findAndPrintEmployee(searchId);
+    }
+
     return 0;
 }
