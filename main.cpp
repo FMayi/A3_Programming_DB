@@ -29,7 +29,7 @@ int main(int argc, char* const argv[]) {
     /***TO_DO***/
     for (int i = 1; i < argc; ++i) {
         int searchId = stoi(argv[i]);
-        cout << "Employee " << i << ": ";
+        cout << "Searching Employee ID " << searchId << ": ";
         manager.findAndPrintEmployee(searchId);
     }
     // int searchId;

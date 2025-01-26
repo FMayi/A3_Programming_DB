@@ -250,6 +250,12 @@ public:
             cerr << "Incomplete read: Expected " << 4096 << " bytes, but only read " << bytes_read << " bytes." << endl;
         }
 
+        // Reset the stream state for subsequent reads
+        if (in.eof() || in.fail()) {
+            in.clear();            // Clear EOF or error flags
+            in.seekg(0, ios::end); // Move to the end of the file (optional reset position)
+        }
+
         return false;
     }
 
@@ -339,7 +345,10 @@ public:
         csvFile.close();  // Close the CSV file
     }
 
-    // Searches for an Employee by ID in the binary data_file using the page and prints if found
+    /**
+     * Searches for an Employee by ID in the binary data_file using the page and prints if found
+     * @param searchId
+     */
     void findAndPrintEmployee(int searchId) {
         data_file.seekg(0, ios::beg);  // Rewind the data_file to the beginning for reading
         int page_number = 0;
