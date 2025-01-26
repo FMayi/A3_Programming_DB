@@ -109,36 +109,6 @@ public:
         }
     }
 
-    // void write_into_data_file(ostream& out) const {
-    //     //Write the records and slot directory information into your data file. You are basically writing 4KB into the datafile.
-    //     //You must maintain a fixed size of 4KB so there may be some unused empty spaces.
-    //
-    //     char page_data[4096] = {0}; // Let's write all the information of the page into this char array. So that we can write the page into the data file in one go.
-    //     int offset = 0; // position of free space
-    //
-    //     // If you look at figure 9.7, you'll find that there are spaces allocated for the slot-directory.
-    //     // You can structure your page in your own way, such as allocate first x bytes of memory to store the slot-directory information
-    //     //  sizeof(int) bytes to parse these numbers.
-    //     // After those x bytes, you start storing your records.
-    //     // You can definitely use $ (delimiter) while storing the slot directory informations /(or,) as you know that these are integers(sizeof(int)) you can read
-    //
-    //     for (const auto& record : records) {
-    //         string serialized = record.serialize();
-    //
-    //         memcpy(page_data + offset, serialized.c_str(), serialized.size());
-    //
-    //         offset += serialized.size();
-    //     }
-    //     //the above loop just read the id, name, bio etc. You'll also need to store the slot-directory information. So that you can use the slot-directory
-    //     // to retrieve a record.
-    //     for (const auto& slots : slot_directory) {
-    //         // insert the slot directory information into the page_data
-    //     }
-    //
-    //     // Write the page_data to the EmployeeRelation.dat file
-    //     out.write(page_data, sizeof(page_data)); // Always write exactly 4KB
-    // }
-
     // Function to write the page to a binary output stream, i.e., EmployeeRelation.dat file
     void write_into_data_file(ostream& out) const {
         //Write the records and slot directory information into your data file. You are basically writing 4KB into the datafile.
