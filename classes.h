@@ -15,6 +15,8 @@ public:
     int id, manager_id; // Employee ID and their manager's ID
     std::string bio, name; // Fixed length string to store employee name and biography
 
+    Record() {}
+
     Record(vector<std::string> &fields) {
         id = stoi(fields[0]);
         name = fields[1];
@@ -46,15 +48,46 @@ public:
         oss.write(bio.c_str(), bio.size());
         return oss.str();
     }
+
+    void deserialize(const string& binary_data) {
+        istringstream iss(binary_data);
+
+        // Read `id`
+        iss.read(reinterpret_cast<char*>(&id), sizeof(id));
+
+        // Read `manager_id`
+        iss.read(reinterpret_cast<char*>(&manager_id), sizeof(manager_id));
+
+        // Read length of `name` and then `name` itself
+        int name_len = 0;
+        iss.read(reinterpret_cast<char*>(&name_len), sizeof(name_len));
+
+        name.resize(name_len); // Allocate space for the name
+        iss.read(&name[0], name_len);
+
+        // Read length of `bio` and then `bio` itself
+        int bio_len = 0;
+        iss.read(reinterpret_cast<char*>(&bio_len), sizeof(bio_len));
+
+        bio.resize(bio_len); // Allocate space for the bio
+        iss.read(&bio[0], bio_len);
+
+        // Validation (optional)
+        if (iss.fail()) {
+            throw runtime_error("Failed to deserialize the record");
+        }
+    }
+
 };
 
 class page{ // Take a look at Figure 9.7 and read Section 9.6.2 [Page Organization for Variable Length Records] 
 public:
     vector <Record> records; // This is the Data_Area, which contains the records. 
-    vector <pair <int, int>> slot_directory; // This slot directory contains the starting position (offset), and size of the record. 
+    vector <pair <int, int> > slot_directory; // This slot directory contains the starting position (offset), and size of the record.
                                              // The starting position i refers to the location of record i in the records and size of that particular record i. 
                                              // This information is crucial, you can load record using this if you know if your record is starting from, e.g., 
                                             // byte 128 and has size 70, you read all characters from [128 to 128 + 70]
+
     
     int cur_size = 0; // holds the current size of the
     int free_space = 4096; //FMA. hold where the free space is, plan to use it to determine the offset
@@ -70,12 +103,13 @@ public:
         }
         else{
             records.push_back(r);
-            cur_size += r.get_size(); 
             // update slot directory information
 
-           int offset = cur_size -r.get_size();
+           // int offset = cur_size - r.serialize().size();
           //  free_space =offset; // to move the pointer of free_space
-            slot_directory.push_back(make_pair(offset, r.serialize().size()));
+            slot_directory.push_back(make_pair(cur_size, r.serialize().size()));
+            cur_size += r.serialize().size();
+
 
             return true;
         }
@@ -83,28 +117,57 @@ public:
 
     }
 
+    // void write_into_data_file(ostream& out) const {
+    //     //Write the records and slot directory information into your data file. You are basically writing 4KB into the datafile.
+    //     //You must maintain a fixed size of 4KB so there may be some unused empty spaces.
+    //
+    //     char page_data[4096] = {0}; // Let's write all the information of the page into this char array. So that we can write the page into the data file in one go.
+    //     int offset = 0; // position of free space
+    //
+    //     // If you look at figure 9.7, you'll find that there are spaces allocated for the slot-directory.
+    //     // You can structure your page in your own way, such as allocate first x bytes of memory to store the slot-directory information
+    //     //  sizeof(int) bytes to parse these numbers.
+    //     // After those x bytes, you start storing your records.
+    //     // You can definitely use $ (delimiter) while storing the slot directory informations /(or,) as you know that these are integers(sizeof(int)) you can read
+    //
+    //     for (const auto& record : records) {
+    //         string serialized = record.serialize();
+    //
+    //         memcpy(page_data + offset, serialized.c_str(), serialized.size());
+    //
+    //         offset += serialized.size();
+    //     }
+    //     //the above loop just read the id, name, bio etc. You'll also need to store the slot-directory information. So that you can use the slot-directory
+    //     // to retrieve a record.
+    //     for (const auto& slots : slot_directory) {
+    //         // insert the slot directory information into the page_data
+    //     }
+    //
+    //     // Write the page_data to the EmployeeRelation.dat file
+    //     out.write(page_data, sizeof(page_data)); // Always write exactly 4KB
+    // }
+
     // Function to write the page to a binary output stream, i.e., EmployeeRelation.dat file
     void write_into_data_file(ostream& out) const {
-        //Write the records and slot directory information into your data file. You are basically writing 4KB into the datafile. 
-        //You must maintain a fixed size of 4KB so there may be some unused empty spaces. 
-        
+        //Write the records and slot directory information into your data file. You are basically writing 4KB into the datafile.
+        //You must maintain a fixed size of 4KB so there may be some unused empty spaces.
+
         char page_data[4096] = {0}; // Let's write all the information of the page into this char array. So that we can write the page into the data file in one go.
         int offset = 0;
 
         /*FMA*/
 
-        int dir_offset = 4095; // Adding directory at the bottom
+        int dir_offset = 4096; // Adding directory at the bottom
         int num_slots =0;       // The number of slots that we are using for the current page
-        int free_space_pos = 0; // Indicate where the free space in the page starts
         //FMA
 
 
-        // If you look at figure 9.7, you'll find that there are spaces allocated for the slot-directory. 
+        // If you look at figure 9.7, you'll find that there are spaces allocated for the slot-directory.
         // You can structure your page in your own way, such as allocate first x bytes of memory to store the slot-directory information
-        //  sizeof(int) bytes to parse these numbers. 
-        // After those x bytes, you start storing your records. 
-        // You can definitely use $ (delimiter) while storing the slot directory informations /(or,) as you know that these are integers(sizeof(int)) you can read 
-        
+        //  sizeof(int) bytes to parse these numbers.
+        // After those x bytes, you start storing your records.
+        // You can definitely use $ (delimiter) while storing the slot directory informations /(or,) as you know that these are integers(sizeof(int)) you can read
+
         for (const auto& record : records) {
             string serialized = record.serialize();
 
@@ -114,6 +177,12 @@ public:
         }
         //the above loop just read the id, name, bio etc. You'll also need to store the slot-directory information. So that you can use the slot-directory
         // to retrieve a record.
+        // Insert Number of slot 4096 - sizeof(int)
+        //Intro number of slots
+        num_slots += slot_directory.size();
+        dir_offset -= sizeof(int);
+        memcpy(page_data + dir_offset, &num_slots, sizeof(int));
+
         for (const auto& slots : slot_directory) {
         /*FMA*/
             // insert the slot directory information into the page_data
@@ -127,37 +196,62 @@ public:
             //Introduces recod length
             dir_offset -= sizeof(int);
             memcpy(page_data + dir_offset, &record_size, sizeof(int));
-
         }
-        //Introduces free space pointer
-        free_space_pos = cur_size;
-        dir_offset -= sizeof(int);
-        memcpy(page_data + dir_offset, &free_space, sizeof(int));
-
-        //Intro number of slots
-        num_slots += slot_directory.size();
-        dir_offset -= sizeof(int);
-        memcpy(page_data + dir_offset, &num_slots, sizeof(int));
         /*FMA*/
 
-        // Write the page_data to the EmployeeRelation.dat file 
+        // Write the page_data to the EmployeeRelation.dat file
         out.write(page_data, sizeof(page_data)); // Always write exactly 4KB
     }
 
     // Read a page from a binary input stream, i.e., EmployeeRelation.dat file to populate a page object
     bool read_from_data_file(istream& in) {
         // Read all the records and slot_directory information from your .dat file
-        // Remember you are reading a chunk of 4098 byte / 4 KB from the data file to your main memory. 
+        // Remember you are reading a chunk of 4098 byte / 4 KB from the data file to your main memory.
         char page_data[4096] = {0};
         in.read(page_data, 4096);
 
         streamsize bytes_read = in.gcount();
         // You may populate the records and slot_directory from the 4 KB data you just read.
         if (bytes_read == 4096) {
-            
+
             // Process data to fill the slot directory and the records to handle it according to the structure
             // Assuming slot directory is processed here or elsewhere depending on your serialization method
-                        
+            // Reconstruct the slot directory
+            // Start rebuilding the slot_directory from the bottom of the page
+            int dir_offset = 4096;
+            slot_directory.clear();
+            records.clear();
+
+            // Read the number of slots
+            dir_offset -= sizeof(int);
+            int num_slots;
+            memcpy(&num_slots, page_data + dir_offset, sizeof(int));
+
+            // Rebuild the slot directory
+            for (int i = 0; i < num_slots; ++i) {
+                dir_offset -= sizeof(int);
+                int record_offset;
+                memcpy(&record_offset, page_data + dir_offset, sizeof(int));
+
+                dir_offset -= sizeof(int);
+                int record_size;
+                memcpy(&record_size, page_data + dir_offset, sizeof(int));
+
+                slot_directory.push_back(make_pair(record_offset, record_size));
+            }
+
+            for (const auto& slots : slot_directory) {
+                // Reconstruct the records
+                int record_offset = slots.first;
+                int record_size = slots.second;
+                // Extract the serialized record data
+                string record_string(page_data + record_offset, record_size);
+                Record r;
+                r.deserialize(record_string);
+                records.push_back(r);
+                r.print();
+            }
+
             return true;
         }
 
@@ -239,19 +333,53 @@ public:
     // Searches for an Employee by ID in the binary data_file using the page and prints if found
     void findAndPrintEmployee(int searchId) {
         
+        // data_file.seekg(0, ios::beg);  // Rewind the data_file to the beginning for reading
+        //
+        // /*** TO_DO ***/
+        // // Use [ read_from_data_file(data_file)] to read a page from your datafile to the page buffer[3];
+        // // You can read into these 3 pages at once or use the following loop to read pages one by one.
+        // int page_number = 0;
+        // while(buffer[page_number].read_from_data_file(data_file)){
+        //
+        //     // Now that you have a page loaded with the data you stored previously, use the slot directory to find the desired id.
+        //     // If you have not found the id in these 1/3 pages, repeat the process: reset the pages[3] and load next 3 pages from the EmployeeRelation.dat file
+        //     page_number++;
+        //     if (page_number >= buffer.size()) {
+        //         // Reset/Free the pages and start filling them up with the future records
+        //         page_number = 0;
+        //     }
+        //
+        // }
+
         data_file.seekg(0, ios::beg);  // Rewind the data_file to the beginning for reading
 
-        /*** TO_DO ***/
-        // Use [ read_from_data_file(data_file)] to read a page from your datafile to the page buffer[3];
-        // You can read into these 3 pages at once or use the following loop to read pages one by one. 
         int page_number = 0;
-        while(buffer[page_number].read_from_data_file(data_file)){
+        int page_offset = 0;  // Keeps track of the number of pages read so far
+        const int page_size = 4096; // Size of one page (4KB)
 
-            // Now that you have a page loaded with the data you stored previously, use the slot directory to find the desired id.
-            // If you have not found the id in these 1/3 pages, repeat the process: reset the pages[3] and load next 3 pages from the EmployeeRelation.dat file   
+        while (buffer[page_number].read_from_data_file(data_file)) {
+            // Now process the current page using the slot directory to find the desired id
+            // Process logic goes here
 
+            page_number++;
+            page_offset++;
+
+            // If buffer is full, reset `page_number` to 0 for circular usage
+            if (page_number >= buffer.size()) {
+                page_number = 0;
+
+                // Ensure the file stream has advanced correctly
+                // Skip over the already-read pages (3 pages, 4KB each in this case)
+                data_file.seekg(page_offset * page_size, ios::beg);
+
+                // If the seek goes beyond EOF, it will stop further reading
+                if (data_file.eof()) {
+                    break;
+                }
+            }
         }
-      
+
+
         // Print not found message if no match from any of the records
     }
 };
