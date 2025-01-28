@@ -29,9 +29,11 @@ int main(int argc, char* const argv[]) {
     /***TO_DO***/
     for (int i = 1; i < argc; ++i) {
         int searchId = stoi(argv[i]);
-        cout << "Searching Employee ID " << searchId << ": ";
+        cout << "\nSearching Employee ID " << searchId << ": ";
         manager.findAndPrintEmployee(searchId);
     }
+
+    /* Search the employee by ID one by one as an infinite loop uncomment if needed*/
     // int searchId;
     // while (true) {
     //     cout << "Enter Employee ID to search (Input 0 to exit): ";

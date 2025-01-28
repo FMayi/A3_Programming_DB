@@ -26,7 +26,7 @@ public:
 
     //You may use this for debugging / showing the record to standard output. 
     void print() {
-        cout << "\tID: " << id << "\n";
+        cout << "\n\tID: " << id << "\n";
         cout << "\tNAME: " << name << "\n";
         cout << "\tBIO: " << bio << "\n";
         cout << "\tMANAGER_ID: " << manager_id << "\n";
@@ -352,7 +352,7 @@ public:
         }
         // Print not found message if no match from any of the records
         if (!found) {
-            cout << "Employee with ID " << searchId << " not found." << endl;
+            cout << "\n\nEmployee with ID " << searchId << " not found, Please verify ID number.\n" << endl;
         }
     }
 };
