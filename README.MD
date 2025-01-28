@@ -1,6 +1,6 @@
 # A3_Storage Management_DB
 
-**A2 - Group 6:**
+**A3 - Group 6:**
 
 - **Student 1**: Franchesca Mayi
 
