@@ -101,7 +101,7 @@ public:
         int record_size = r.serialize().size();
         // Take a look at Figure 9.9 and read the Section 9.7.2 [Record Organization for Variable Length Records]
         // You may adopt any of the approaches mentioned their. E.g., id $ name $ bio $ manager_id $ separating records with a delimiter / the alternative approaches
-        if (cur_size + record_size + slot_size + sizeof(int)  >= 4096) { // Every time we get to add a new record we make space for new record and the space it will occupy in the slot directory
+        if (cur_size + record_size + slot_directory.size() * sizeof(int) + sizeof(int)  >= 4096) { // Every time we get to add a new record we make space for new record and the space it will occupy in the slot directory
             // Check the current size of your page. Your page has 4KB memory for storing the records and the slot directory information.
             //You cannot insert the current record into this page
             return false;
@@ -109,9 +109,7 @@ public:
             records.push_back(r);
             // update slot directory information
             slot_directory.push_back(make_pair(cur_size, record_size));
-
-            int new_size_for_record = record_size + slot_size;
-            cur_size += new_size_for_record;
+            cur_size += record_size;
             return true;
         }
     }
